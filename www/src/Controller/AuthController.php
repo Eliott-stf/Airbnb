@@ -13,19 +13,18 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Entity\User;
+use JulienLinard\Core\Controller\Controller;
+use JulienLinard\Router\Attributes\Route;
 use JulienLinard\Router\Request;
 use JulienLinard\Router\Response;
-use App\Repository\UserRepository;
 use JulienLinard\Auth\AuthManager;
+use JulienLinard\Auth\Middleware\GuestMiddleware;
+use JulienLinard\Auth\Middleware\AuthMiddleware;
+use JulienLinard\Doctrine\EntityManager;
 use JulienLinard\Core\Form\Validator;
 use JulienLinard\Core\Session\Session;
-use JulienLinard\Core\View\ViewHelper;
-use JulienLinard\Doctrine\EntityManager;
-use JulienLinard\Router\Attributes\Route;
-use JulienLinard\Core\Controller\Controller;
-use JulienLinard\Auth\Middleware\AuthMiddleware;
-use JulienLinard\Auth\Middleware\GuestMiddleware;
+use App\Entity\User;
+use App\Repository\UserRepository;
 
 class AuthController extends Controller
 {
@@ -37,24 +36,138 @@ class AuthController extends Controller
     
     /**
      * Affiche le formulaire de connexion
-     * TODO: Middleware
+     * 
      * CONCEPT : Route protégée par GuestMiddleware (seulement pour les utilisateurs non authentifiés)
      */
     #[Route(path: '/login', methods: ['GET'], name: 'login')]
     public function loginForm(): Response
     {
         return $this->view('auth/login', [
-            "csrf_token" => ViewHelper::csrfToken()
+            'title' => 'Connexion'
         ]);
     }
+    
     /**
-     * Affiche le formulaire de d'inscription
+     * Traite la connexion
+     * 
+     * CONCEPT : Validation des données, tentative d'authentification
      */
-     #[Route(path: '/register', methods: ['GET'], name: 'register')]
+    #[Route(path: '/login', methods: ['POST'], name: 'login.post')]
+    public function login(Request $request): Response
+    {
+        $email = $request->getBodyParam('email', '');
+        $password = $request->getBodyParam('password', '');
+        $remember = $request->getBodyParam('remember', false);
+        
+        // Validation
+        $errors = [];
+        
+        if (!$this->validator->required($email)) {
+            $errors['email'] = 'L\'email est requis';
+        } elseif (!$this->validator->email($email)) {
+            $errors['email'] = 'L\'email n\'est pas valide';
+        }
+        
+        if (!$this->validator->required($password)) {
+            $errors['password'] = 'Le mot de passe est requis';
+        }
+        
+        if (!empty($errors)) {
+            Session::flash('error', 'Veuillez corriger les erreurs du formulaire');
+            return $this->view('auth/login', [
+                'title' => 'Connexion',
+                'errors' => $errors,
+                'old' => ['email' => $email]
+            ]);
+        }
+        
+        // Tentative d'authentification
+        $credentials = [
+            'email' => $email,
+            'password' => $password
+        ];
+        
+        if ($this->auth->attempt($credentials, (bool)$remember)) {
+            Session::flash('success', 'Connexion réussie !');
+            return $this->redirect('/');
+        }
+        
+        Session::flash('error', 'Email ou mot de passe incorrect');
+        return $this->view('auth/login', [
+            'title' => 'Connexion',
+            'old' => ['email' => $email]
+        ]);
+    }
+    
+    /**
+     * Affiche le formulaire d'inscription
+     * 
+     * CONCEPT : Route protégée par GuestMiddleware
+     */
+    #[Route(path: '/register', methods: ['GET'], name: 'register')]
     public function registerForm(): Response
     {
         return $this->view('auth/register', [
-            "csrf_token" => ViewHelper::csrfToken()
+            'title' => 'Inscription'
         ]);
+    }
+    
+    /**
+     * Traite l'inscription
+     * 
+     * CONCEPT : Validation, vérification de l'unicité de l'email, création de l'utilisateur
+     */
+    #[Route(path: '/register', methods: ['POST'], name: 'register.post')]
+    public function register(Request $request): Response
+    {
+        $email = $request->getBodyParam('email', '');
+        $password = $request->getBodyParam('password', '');
+        $passwordConfirm = $request->getBodyParam('password_confirm', '');
+        $firstname = $request->getBodyParam('firstname', '');
+        $lastname = $request->getBodyParam('lastname', '');
+        
+        
+        
+        // Créer l'utilisateur
+        try {
+            $user = new User();
+            $user->email = $email;
+            $user->password = password_hash($password, PASSWORD_BCRYPT);
+            $user->firstname = $firstname;
+            $user->lastname = $lastname;
+            $user->created_at = new \DateTime();
+           
+            $this->em->persist($user);
+            $this->em->flush();
+            
+            // Connecter automatiquement l'utilisateur après l'inscription
+            $this->auth->login($user);
+            
+            Session::flash('success', 'Inscription réussie ! Bienvenue !');
+            return $this->redirect('/');
+        } catch (\Exception $e) {
+            Session::flash('error', 'Une erreur est survenue lors de l\'inscription');
+            return $this->view('auth/register', [
+                'title' => 'Inscription',
+                'old' => [
+                    'email' => $email,
+                    'firstname' => $firstname,
+                    'lastname' => $lastname
+                ]
+            ]);
+        }
+    }
+    
+    /**
+     * Déconnexion
+     * 
+     * CONCEPT : Route protégée par AuthMiddleware (seulement pour les utilisateurs authentifiés)
+     */
+    #[Route(path: '/logout', methods: ['POST'], name: 'logout')]
+    public function logout(): Response
+    {
+        $this->auth->logout();
+        Session::flash('success', 'Vous avez été déconnecté avec succès');
+        return $this->redirect('/');
     }
 }

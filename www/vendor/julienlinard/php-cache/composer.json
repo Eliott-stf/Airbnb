@@ -1,0 +1,60 @@
+{
+    "name": "julienlinard/php-cache",
+    "description": "Système de cache moderne et sécurisé pour PHP 8+ avec support de multiples drivers (File, Redis, Memcached, Array), tags, TTL et invalidation",
+    "type": "library",
+    "keywords": [
+        "cache",
+        "caching",
+        "php",
+        "php8",
+        "redis",
+        "memcached",
+        "file-cache",
+        "ttl",
+        "tags",
+        "performance",
+        "security"
+    ],
+    "homepage": "https://github.com/julien-lin/php-cache",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Julien Linard",
+            "email": "julien.linard.dev@gmail.com",
+            "homepage": "https://github.com/julien-lin"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/julien-lin/php-cache/issues",
+        "source": "https://github.com/julien-lin/php-cache"
+    },
+    "require": {
+        "php": ">=8.0",
+        "ext-json": "*"
+    },
+    "suggest": {
+        "ext-redis": "Pour utiliser le driver Redis",
+        "ext-memcached": "Pour utiliser le driver Memcached"
+    },
+    "autoload": {
+        "psr-4": {
+            "JulienLinard\\Cache\\": "src/Cache/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "JulienLinard\\Cache\\Tests\\": "tests/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-text"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "version": "1.0.2"
+}
+

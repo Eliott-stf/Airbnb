@@ -7,9 +7,11 @@
 
 use App\Controller\AuthController;
 use App\Controller\HomeController;
+use App\Controller\HoteController;
 use JulienLinard\Auth\AuthManager;
 use JulienLinard\Core\Application;
 use JulienLinard\Doctrine\EntityManager;
+use JulienLinard\Core\Middleware\CsrfMiddleware;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -80,8 +82,9 @@ $container->singleton(AuthManager::class, function() use ($container){
  * =======================================
  * CONFIGURATION DU ROUTEUR ET MIDLLEWARES
  * =======================================
- */
+*/
 $router =$app->getRouter();
+$router->addMiddleware(new CsrfMiddleware());
 
 //TODO: ici les futurs middleware
 
@@ -93,6 +96,7 @@ $router =$app->getRouter();
  */
 $router->registerRoutes(HomeController::class);
 $router->registerRoutes(AuthController::class);
+$router->registerRoutes(HoteController::class);
 
 
 
