@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use JulienLinard\Core\Controller\Controller;
 use JulienLinard\Router\Attributes\Route;
+use JulienLinard\Router\Middlewares\AuthMiddleware;
 
 class HomeController extends Controller
 {

@@ -39,7 +39,7 @@ class AuthController extends Controller
      * 
      * CONCEPT : Route protégée par GuestMiddleware (seulement pour les utilisateurs non authentifiés)
      */
-    #[Route(path: '/login', methods: ['GET'], name: 'login')]
+    #[Route(path: '/login', methods: ['GET'], name: 'login', middleware: [GuestMiddleware::class])]
     public function loginForm(): Response
     {
         return $this->view('auth/login', [
@@ -52,7 +52,7 @@ class AuthController extends Controller
      * 
      * CONCEPT : Validation des données, tentative d'authentification
      */
-    #[Route(path: '/login', methods: ['POST'], name: 'login.post')]
+    #[Route(path: '/login', methods: ['POST'], name: 'login.post', middleware: [GuestMiddleware::class])]
     public function login(Request $request): Response
     {
         $email = $request->getBodyParam('email', '');
@@ -104,7 +104,7 @@ class AuthController extends Controller
      * 
      * CONCEPT : Route protégée par GuestMiddleware
      */
-    #[Route(path: '/register', methods: ['GET'], name: 'register')]
+    #[Route(path: '/register', methods: ['GET'], name: 'register', middleware: [GuestMiddleware::class])]
     public function registerForm(): Response
     {
         return $this->view('auth/register', [
@@ -117,7 +117,7 @@ class AuthController extends Controller
      * 
      * CONCEPT : Validation, vérification de l'unicité de l'email, création de l'utilisateur
      */
-    #[Route(path: '/register', methods: ['POST'], name: 'register.post')]
+    #[Route(path: '/register', methods: ['POST'], name: 'register.post', middleware: [GuestMiddleware::class])]
     public function register(Request $request): Response
     {
         $email = $request->getBodyParam('email', '');
@@ -126,7 +126,53 @@ class AuthController extends Controller
         $firstname = $request->getBodyParam('firstname', '');
         $lastname = $request->getBodyParam('lastname', '');
         
+        // Validation
+        $errors = [];
         
+        if (!$this->validator->required($email)) {
+            $errors['email'] = 'L\'email est requis';
+        } elseif (!$this->validator->email($email)) {
+            $errors['email'] = 'L\'email n\'est pas valide';
+        } else {
+            // Vérifier si l'email existe déjà
+            $userRepo = $this->em->createRepository(UserRepository::class, User::class);
+            if ($this->$userRepo->emailExists($email)) {
+                $errors['email'] = 'Cet email est déjà utilisé';
+            }
+        }
+        
+        if (!$this->validator->required($password)) {
+            $errors['password'] = 'Le mot de passe est requis';
+        } elseif (!$this->validator->min($password, 8)) {
+            $errors['password'] = 'Le mot de passe doit contenir au moins 8 caractères';
+        }
+        
+        if (!$this->validator->required($passwordConfirm)) {
+            $errors['password_confirm'] = 'La confirmation du mot de passe est requise';
+        } elseif ($password !== $passwordConfirm) {
+            $errors['password_confirm'] = 'Les mots de passe ne correspondent pas';
+        }
+        
+        if (!$this->validator->required($firstname)) {
+            $errors['firstname'] = 'Le prénom est requis';
+        }
+        
+        if (!$this->validator->required($lastname)) {
+            $errors['lastname'] = 'Le nom est requis';
+        }
+        
+        if (!empty($errors)) {
+            Session::flash('error', 'Veuillez corriger les erreurs du formulaire');
+            return $this->view('auth/register', [
+                'title' => 'Inscription',
+                'errors' => $errors,
+                'old' => [
+                    'email' => $email,
+                    'firstname' => $firstname,
+                    'lastname' => $lastname
+                ]
+            ]);
+        }
         
         // Créer l'utilisateur
         try {
@@ -136,7 +182,8 @@ class AuthController extends Controller
             $user->firstname = $firstname;
             $user->lastname = $lastname;
             $user->created_at = new \DateTime();
-           
+
+            
             $this->em->persist($user);
             $this->em->flush();
             
@@ -163,7 +210,7 @@ class AuthController extends Controller
      * 
      * CONCEPT : Route protégée par AuthMiddleware (seulement pour les utilisateurs authentifiés)
      */
-    #[Route(path: '/logout', methods: ['POST'], name: 'logout')]
+    #[Route(path: '/logout', methods: ['POST'], name: 'logout', middleware: [AuthMiddleware::class])]
     public function logout(): Response
     {
         $this->auth->logout();

@@ -13,7 +13,7 @@ $old = $old ?? ['title' => '', 'description' => ''];
             </div>
         <?php endif; ?>
 
-        <form method="POST" action="/hote" enctype="multipart/form-data" class="space-y-6 ">
+        <form method="POST" action="/hote/create" enctype="multipart/form-data" class="space-y-6 ">
             <?= \JulienLinard\Core\Middleware\CsrfMiddleware::field() ?>
 
             <!-- Title -->
@@ -34,6 +34,26 @@ $old = $old ?? ['title' => '', 'description' => ''];
                 <?php endif; ?>
             </div>
 
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2" for="type_id">Type de logement</label>
+                <select name="type_id" id="type_id" class=" w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value=""> Choisissez un type</option>
+
+                    <?php foreach ($types as $type): ?>
+                        <option value="<?= $type->id ?>">
+                            <?= htmlspecialchars($type->label) ?>
+                        </option>
+                    <?php endforeach; ?>
+
+                </select>
+                <?php if (!empty($errors['type_id'])): ?>
+                    <p class="text-red-500 text-sm"><?= $errors['type_id'] ?></p>
+                <?php endif; ?>
+            </div>
+
+
+
+
             <!-- Description -->
             <div>
                 <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
@@ -45,6 +65,58 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     rows="4"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"><?= htmlspecialchars($old['description'] ?? '') ?></textarea>
             </div>
+
+
+            <div class="pt-4 ">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Équipements
+                </label>
+
+                <div class="max-h-80 overflow-y-auto border rounded-lg p-4 space-y-6 bg-white shadow-inner">
+                    <?php foreach ($categorys as $category): ?>
+                        <div>
+                            <!-- Titre de catégorie -->
+                            <div class="mt-4 mb-2">
+                                <div class="text-sm font-medium text-gray-700 mb-1">
+                                    <?= htmlspecialchars($category->label) ?>
+                                </div>
+                                <div class="border-b border-gray-200"></div>
+                            </div>
+
+                            <!-- Pills des équipements -->
+                            <div class="flex flex-wrap gap-2">
+                                <?php foreach ($equipments as $equipment): ?>
+                                    <?php if ($equipment->category_id == $category->id): ?>
+                                        <label class="cursor-pointer select-none">
+                                            <input
+                                                type="checkbox"
+                                                name="equipment_ids[]"
+                                                value="<?= $equipment->id ?>"
+                                                class="peer hidden">
+                                            <span class="
+                                    px-3 py-1 rounded-full border border-gray-300 
+                                    text-gray-700 text-sm 
+                                    bg-gray-100
+                                    peer-checked:bg-red-500 
+                                    peer-checked:text-white 
+                                    peer-checked:border-red-500
+                                    transition
+                                    hover:bg-red-400 hover:text-white
+                                ">
+                                                <?= htmlspecialchars($equipment->label) ?>
+                                            </span>
+                                        </label>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+
+
+
 
 
             <div>
@@ -91,15 +163,18 @@ $old = $old ?? ['title' => '', 'description' => ''];
 
             </div>
 
-            <div>
-                <label for="country" class="block text-sm font-medium text-gray-700 mb-2">
-                    DATE DE SEJOUR TODO....
-                </label>
-                <input
-                    id="country"
-                    name="country"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"><?= htmlspecialchars($old['country'] ?? '') ?>
+            <div class="flex gap-5">
+                <div class="flex-1">
+                    <label for="date_in" class="block text-sm font-medium text-gray-700 mb-1">Debut de location</label>
+                    <input type="date" id="date_in" name="date_in" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <div class="flex-1">
+                    <label for="date_out" class="block text-sm font-medium text-gray-700 mb-1">Fin de location</label>
+                    <input type="date" id="date_out" name="date_out" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
             </div>
+
 
 
             <div class="flex gap-5">

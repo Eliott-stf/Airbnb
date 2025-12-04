@@ -32,8 +32,8 @@ class Available
     #[Column(type:"datetime")]
     public DateTime $date_out;
 
-    #[Column(type:"integer", nullable:true)]
-    public int $post_id = null;
+    #[Column(type:"integer")]
+    public int $post_id;
 
     #[OneToMany(targetEntity:Post::class, invertedBy: 'available')]
     public ?Post $post=null;

@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($title ?? 'Application') ?></title>
+    <title>Aribnb</title>
+    <link rel="icon" type="image/png" href="/assets/img/favicon-96x96.png" sizes="96x96" />
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">

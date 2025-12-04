@@ -2,58 +2,177 @@
 
 namespace App\Controller;
 
+
+use Exception;
 use App\Entity\Post;
+use App\Entity\Type;
+use App\Entity\Category;
+use App\Entity\Equipment;
+use App\Entity\Available;
+use JulienLinard\Router\Request;
 use JulienLinard\Router\Response;
+use App\Repository\PostRepository;
+use App\Repository\TypeRepository;
 use App\Service\FileUploadService;
 use JulienLinard\Auth\AuthManager;
+use JulienLinard\Core\Application;
 use JulienLinard\Core\Form\Validator;
+use App\Repository\CategoryRepository;
+use JulienLinard\Core\Session\Session;
+use JulienLinard\Core\View\ViewHelper;
+use App\Repository\EquipmentRepository;
 use JulienLinard\Doctrine\EntityManager;
 use JulienLinard\Router\Attributes\Route;
+use JulienLinard\Core\Logging\SimpleLogger;
 use JulienLinard\Core\Controller\Controller;
+use JulienLinard\Auth\Middleware\AuthMiddleware;
 
 class HoteController extends Controller
 {
-    public function __construct(
-        private AuthManager $auth,
-        private EntityManager $em
-    ) {}
+    private AuthManager $auth;
+    private EntityManager $em;
+    private PostRepository $postRepository;
+    private TypeRepository $typeRepository;
+    private EquipmentRepository $equipmentRepository;
+    private CategoryRepository $categoryRepository;
+    private Validator $validator;
+    private FileUploadService $fileUploadService; // service d'upload de média
+    private SimpleLogger $logger;
 
-    //TODO: MIDDLEWARE
-    #[Route("/hote/create", methods: ["GET"], name: "app_hote")]
-    public function postForm()
+    public function __construct()
     {
-        return $this->view("hote/create");
+        $app = Application::getInstanceOrFail();
+        $container = $app->getContainer();
+
+        $this->auth = $container->make(AuthManager::class);
+        $this->em = $container->make(EntityManager::class);
+        $this->postRepository = $this->em->createRepository(PostRepository::class, Post::class);
+        $this->typeRepository = $this->em->createRepository(TypeRepository::class, Type::class);
+        $this->equipmentRepository = $this->em->createRepository(EquipmentRepository::class, Equipment::class);
+        $this->categoryRepository = $this->em->createRepository(CategoryRepository::class, Category::class);
+        $this->validator = new Validator();
+        $this->fileUploadService = new FileUploadService();
+        $this->logger = $container->make(SimpleLogger::class);
+    }
+
+
+    #[Route(path: "/hote/index", name: "app_dashboard", middleware: [AuthMiddleware::class])]
+    public function dashboard(): Response
+    {
+        try {
+            // Récupère l'utilisateur connecté
+            $user = $this->auth->user();
+
+            // Récupère les annonces du user
+            $posts = $this->postRepository->findByUserId($user->id);
+
+            $this->logger->info("Dashboard consulté", [
+                "user_id" => $user->id,
+                "posts_count" => count($posts)
+            ]);
+
+            return $this->view("hote/index", [
+                "title" => "Mes annonces",
+                "user" => $user,
+                "posts" => $posts
+            ]);
+        } catch (Exception $e) {
+
+            $this->logger->error($e->getMessage(), [
+                "action" => "Dashboard",
+                "trace" => $e->getTraceAsString()
+            ]);
+
+            return $this->view("hote/index", [
+                "title" => "Mes annonces",
+                "user" => $this->auth->user(),
+                "posts" => [],
+                "error" => $e
+            ]);
+        }
+    }
+
+
+    /**
+     * méthod pour afficher le formulaire de création
+     * @return Response
+     */
+    #[Route(path: "/hote/create", name: "app_hote_create", middleware: [AuthMiddleware::class])]
+    public function createForm(): Response
+    {
+        $types = $this->typeRepository->findAll();
+        $equipments = $this->equipmentRepository->findAll();
+        $categories = $this->categoryRepository->findAll();
+
+        return $this->view("hote/create", [
+            "csrf_token" => ViewHelper::csrfToken(),
+            "user" => $this->auth->user(),
+            "types" => $types,
+            'equipments' => $equipments,
+            'categorys' => $categories
+        ]);
     }
 
     /**
-     * méthod pour enregistrer les données du post a sa création
+     * méthod pour enregistrer les données du form de création de bien 
      * @return Response
      */
-
-    #[Route("/hote/create", methods: ["POST"], name: "app_add_post")]
-    public function postCreate(): Response
+    #[Route(path: "/hote/create", name: "app_hote_create_POST", methods: ["POST"], middleware: [AuthMiddleware::class])]
+    public function create(Request $request): Response
     {
+        //on verifie l'user 
+        $user = $this->auth->user();
+        if (!$user) {
+            return $this->redirect('/login');
+        }
+
+        //On récupère les infos du post dans des variables
+
+        $title = trim($request->getPost('title', '') ?? '');
+        $description = trim($request->getPost('description', '') ?? '');
+        $priceDay = trim($request->getPost('price_day', '0') ?? '0');
+        $country = trim($request->getPost('country', '') ?? '');
+        $address = trim($request->getPost('address', '') ?? '');
+        $postalCode = trim($request->getPost('postal_code', '') ?? '');
+        $city = trim($request->getPost('city', '') ?? '');
+        $bedCount = trim($request->getPost('bed_count', '0') ?? '0');
+        $maxCapacity = trim($request->getPost('max_capacity', '0') ?? '0');
+        $typeId = trim($request->getPost('type_id', '0') ?? '0');
+        $equipmentIds = $request->getPost('equipment_ids', []);
+        $dateIn = $request->getPost('date_in', '0') ?? '0';
+        $dateOut = $request->getPost('date_out', '0') ?? '0';
+
+
+        //On effectue les validations 
+        if ($country === '') {
+            $country = 'Non renseigné';
+        }
+        if (empty($title)) {
+            $errors['title'] = 'Le titre est requis';
+        } elseif (strlen($title) > 255) {
+            $errors['title'] = 'Le titre ne doit pas dépasser 255 caractères';
+        }
+
+        if (empty($description)) {
+            $errors['description'] = "La description est requise";
+        }
+
+        if (!empty($errors)) {
+            Session::flash('error', 'Veuillez corriger les erreurs du formulaire');
+
+            return $this->view('hote/create', [
+                'errors' => $errors,
+                "csrf_token" => ViewHelper::csrfToken(),
+            ]);
+        }
+
+        //On créer le post 
         try {
-            $user = $this->auth->user();
-
-            //On décalre nos variables a stocker du form
-            $title = trim($_POST['title'] ?? '');
-            $description = trim($_POST['description'] ?? '');
-            $priceDay = $_POST['price_day'];
-            $country = trim($_POST['country'] ?? '');
-            $address = trim($_POST['address'] ?? '');
-            $postalCode = trim($_POST['postal_code'] ?? '');
-            $city = trim($_POST['city'] ?? '');
-            $bedCount = trim($_POST['bed_count'] ?? '');
-            $maxCapacity = trim($_POST['max_capacity'] ?? '');
-
-            //On procède a la validation des infos
-            /* $isValid = true;
-            $isValid = $this->validator->($title) && */
-
             $post = new Post();
             $post->title = $title;
             $post->description = $description;
+            $post->user_id = $user->getAuthIdentifier();
+            $post->type_id = $typeId;
             $post->price_day = $priceDay;
             $post->country = $country;
             $post->address = $address;
@@ -61,26 +180,38 @@ class HoteController extends Controller
             $post->city = $city;
             $post->bed_count = $bedCount;
             $post->max_capacity = $maxCapacity;
-            $post->user = $user; // Relation Doctrine ou équivalent
             $post->created_at = new \DateTime();
-
-            //save en bdd
             $this->em->persist($post);
+
+            $available = new Available;
+            $available->date_in = $dateIn;
+            $available->date_out =$dateOut;
+            $available->post_id = $post->id;
+            $this->em->persist($available);
+
             $this->em->flush();
 
-            Logger::info("Post créer avec succer", ["user_id" => $user->id, "title_post" => $title]);
-            //redicrection
-            return $this->redirect("/");
-        } catch (\Exception $e) {
-            Logger::exception("$e", [
-                "action" => "create_post",
-                "user_id" => $this->auth->user()->id
-            ]);
 
-            return $this->view("hote/create", [
-                "user" => $this->auth->user(),
-                "error" => "Une erreur est survenue pendant la création de la tache. Veuillez réessayer.",
-                "csrf_token" => ViewHelper::csrfToken(),
+            Session::flash("Post créer avec succes", ["user_id" => $user->id, "title_post" => $title]);
+            //redirection 
+            return $this->redirect("/hote/index");
+        } catch (\Exception $e) {
+            Session::flash('error', 'Une erreur est survenue lors de la création du todo: ' . $e->getMessage());
+
+
+            return $this->view('hote/create', [
+                'old' => [
+                    'title' => $title ?? '',
+                    'description' => $description ?? '',
+                    'price_day' => $priceDay,
+                    'country' => $country,
+                    'address' => $address,
+                    'postal_code' => $postalCode,
+                    'city' => $city,
+                    'bed_count' => $bedCount,
+                    'max_capacity' => $maxCapacity
+                ],
+                'errors' => ['general' => $e->getMessage()]
             ]);
         }
     }

@@ -16,14 +16,18 @@ namespace App\Entity;
 use JulienLinard\Doctrine\Mapping\Id;
 use JulienLinard\Doctrine\Mapping\Column;
 use JulienLinard\Doctrine\Mapping\Entity;
-#[Entity(table:'type')]
+use JulienLinard\Doctrine\Mapping\OneToMany;
+
+#[Entity(table: 'category')]
 class Category 
 {
     #[Id]
-    #[Column(type:"integer", autoIncrement: true)]
+    #[Column(type: "integer", autoIncrement: true)]
     public ?int $id = null;
 
-    #[Column(type:"string", length:70)]
+    #[Column(type: "string", length: 100)]
     public string $label; 
 
+    #[OneToMany(targetEntity: Equipment::class, mappedBy: 'category')]
+    public array $equipments = [];
 }
