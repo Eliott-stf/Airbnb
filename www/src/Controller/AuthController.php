@@ -32,8 +32,9 @@ class AuthController extends Controller
         private AuthManager $auth,
         private EntityManager $em,
         private Validator $validator
-    ) {}
-    
+    ) {
+    }
+
     /**
      * Affiche le formulaire de connexion
      * 
@@ -46,7 +47,7 @@ class AuthController extends Controller
             'title' => 'Connexion'
         ]);
     }
-    
+
     /**
      * Traite la connexion
      * 
@@ -58,20 +59,20 @@ class AuthController extends Controller
         $email = $request->getBodyParam('email', '');
         $password = $request->getBodyParam('password', '');
         $remember = $request->getBodyParam('remember', false);
-        
+
         // Validation
         $errors = [];
-        
+
         if (!$this->validator->required($email)) {
             $errors['email'] = 'L\'email est requis';
         } elseif (!$this->validator->email($email)) {
             $errors['email'] = 'L\'email n\'est pas valide';
         }
-        
+
         if (!$this->validator->required($password)) {
             $errors['password'] = 'Le mot de passe est requis';
         }
-        
+
         if (!empty($errors)) {
             Session::flash('error', 'Veuillez corriger les erreurs du formulaire');
             return $this->view('auth/login', [
@@ -80,25 +81,25 @@ class AuthController extends Controller
                 'old' => ['email' => $email]
             ]);
         }
-        
+
         // Tentative d'authentification
         $credentials = [
             'email' => $email,
             'password' => $password
         ];
-        
-        if ($this->auth->attempt($credentials, (bool)$remember)) {
+
+        if ($this->auth->attempt($credentials, (bool) $remember)) {
             Session::flash('success', 'Connexion réussie !');
             return $this->redirect('/');
         }
-        
+
         Session::flash('error', 'Email ou mot de passe incorrect');
         return $this->view('auth/login', [
             'title' => 'Connexion',
             'old' => ['email' => $email]
         ]);
     }
-    
+
     /**
      * Affiche le formulaire d'inscription
      * 
@@ -111,7 +112,7 @@ class AuthController extends Controller
             'title' => 'Inscription'
         ]);
     }
-    
+
     /**
      * Traite l'inscription
      * 
@@ -125,10 +126,10 @@ class AuthController extends Controller
         $passwordConfirm = $request->getBodyParam('password_confirm', '');
         $firstname = $request->getBodyParam('firstname', '');
         $lastname = $request->getBodyParam('lastname', '');
-        
+
         // Validation
         $errors = [];
-        
+
         if (!$this->validator->required($email)) {
             $errors['email'] = 'L\'email est requis';
         } elseif (!$this->validator->email($email)) {
@@ -136,31 +137,33 @@ class AuthController extends Controller
         } else {
             // Vérifier si l'email existe déjà
             $userRepo = $this->em->createRepository(UserRepository::class, User::class);
-            if ($this->$userRepo->emailExists($email)) {
+
+            // CORRECTION : Utilisez $userRepo directement
+            if ($userRepo->emailExists($email)) {
                 $errors['email'] = 'Cet email est déjà utilisé';
             }
         }
-        
+
         if (!$this->validator->required($password)) {
             $errors['password'] = 'Le mot de passe est requis';
         } elseif (!$this->validator->min($password, 8)) {
             $errors['password'] = 'Le mot de passe doit contenir au moins 8 caractères';
         }
-        
+
         if (!$this->validator->required($passwordConfirm)) {
             $errors['password_confirm'] = 'La confirmation du mot de passe est requise';
         } elseif ($password !== $passwordConfirm) {
             $errors['password_confirm'] = 'Les mots de passe ne correspondent pas';
         }
-        
+
         if (!$this->validator->required($firstname)) {
             $errors['firstname'] = 'Le prénom est requis';
         }
-        
+
         if (!$this->validator->required($lastname)) {
             $errors['lastname'] = 'Le nom est requis';
         }
-        
+
         if (!empty($errors)) {
             Session::flash('error', 'Veuillez corriger les erreurs du formulaire');
             return $this->view('auth/register', [
@@ -173,7 +176,7 @@ class AuthController extends Controller
                 ]
             ]);
         }
-        
+
         // Créer l'utilisateur
         try {
             $user = new User();
@@ -183,13 +186,13 @@ class AuthController extends Controller
             $user->lastname = $lastname;
             $user->created_at = new \DateTime();
 
-            
+
             $this->em->persist($user);
             $this->em->flush();
-            
+
             // Connecter automatiquement l'utilisateur après l'inscription
             $this->auth->login($user);
-            
+
             Session::flash('success', 'Inscription réussie ! Bienvenue !');
             return $this->redirect('/');
         } catch (\Exception $e) {
@@ -204,7 +207,7 @@ class AuthController extends Controller
             ]);
         }
     }
-    
+
     /**
      * Déconnexion
      * 

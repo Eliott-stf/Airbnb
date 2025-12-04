@@ -142,6 +142,9 @@ class HoteController extends Controller
         $dateIn = $request->getPost('date_in', '0') ?? '0';
         $dateOut = $request->getPost('date_out', '0') ?? '0';
 
+        $dateInObject = new \DateTime($dateIn);
+        $dateOutObject = new \DateTime($dateOut);
+
 
         //On effectue les validations 
         if ($country === '') {
@@ -182,11 +185,12 @@ class HoteController extends Controller
             $post->max_capacity = $maxCapacity;
             $post->created_at = new \DateTime();
             $this->em->persist($post);
+            $this->em->flush();
 
-            $available = new Available;
-            $available->date_in = $dateIn;
-            $available->date_out =$dateOut;
-            $available->post_id = $post->id;
+            $available = new Available();
+            $available->date_in = $dateInObject;     
+            $available->date_out = $dateOutObject;  
+            $available->post_id = $post->id;         
             $this->em->persist($available);
 
             $this->em->flush();
