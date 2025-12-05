@@ -29,14 +29,34 @@ class PostRepository extends EntityRepository
     }
 
     /**
-     * méthode qui récupère tout les todo d'un utilisateur grace a son id 
-     * @param int $userId
-     * @return array Liste des todos 
-     */
-    public function findbyUserId(int $userId): array
-    {
-        return $this->findBy(
-            ["user_id" => $userId]
-        );
+ * Méthode qui récupère tous les posts d'un utilisateur grâce à son id
+ * @param int $userId
+ * @param array|null $orderBy Ordre de tri
+ * @return array Liste des posts
+ */
+public function findByUserId(int $userId, ?array $orderBy = null): array
+{
+    return $this->findBy(
+        ["user_id" => $userId],
+        $orderBy ?? ["created_at" => "DESC"]
+    );
+}
+
+/**
+ * Méthode qui récupère un post grâce à son id et qui appartient à un utilisateur spécifique
+ * @param int $id ID du post
+ * @param int $userId ID de l'utilisateur
+ * @return Post|null Retourne l'objet Post ou null si non trouvé ou pas accès
+ */
+public function findByIdAndUserId(int $id, int $userId): ?Post
+{
+    $post = $this->find($id);
+
+    if (!$post || $post->user_id !== $userId) {
+        return null;
     }
+
+    return $post;
+}
+
 }

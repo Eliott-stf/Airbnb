@@ -169,6 +169,25 @@ class HoteController extends Controller
             ]);
         }
 
+        $mediaPath = null;
+
+        if (isset($_FILES['media']) && $_FILES['media']['error'] === UPLOAD_ERR_OK) {
+
+            // On récupère un UploadResult
+            $result = $this->fileUploadService->upload($_FILES['media']);
+
+            // Vérifier si c'est bien un UploadResult
+            if ($result instanceof \App\Service\UploadResult && $result->isSuccess()) {
+
+                $data = $result->getData(); // array ou null
+
+                if ($data !== null && isset($data['path'])) {
+                    $mediaPath = $data['path'];   // <-- ICI : string OK
+                }
+            }
+        }
+
+
         //On créer le post 
         try {
             $post = new Post();
@@ -183,17 +202,19 @@ class HoteController extends Controller
             $post->city = $city;
             $post->bed_count = $bedCount;
             $post->max_capacity = $maxCapacity;
+            $post->media_path = $mediaPath;
             $post->created_at = new \DateTime();
             $this->em->persist($post);
             $this->em->flush();
 
-            $available = new Available();
-            $available->date_in = $dateInObject;     
-            $available->date_out = $dateOutObject;  
-            $available->post_id = $post->id;         
-            $this->em->persist($available);
 
+            $available = new Available();
+            $available->date_in = $dateInObject;
+            $available->date_out = $dateOutObject;
+            $available->post_id = $post->id;
+            $this->em->persist($available);
             $this->em->flush();
+
 
 
             Session::flash("Post créer avec succes", ["user_id" => $user->id, "title_post" => $title]);
@@ -217,6 +238,42 @@ class HoteController extends Controller
                 ],
                 'errors' => ['general' => $e->getMessage()]
             ]);
+        }
+    }
+
+    /**
+     * Méthode pour supprimer un post
+     * @param int $id id du post
+     * @return Response
+     */
+    #[Route(path: "/hote/{id}/delete", name: "app_delete_post", methods: ["POST"], middleware: [AuthMiddleware::class])]
+    public function delete(int $id): Response
+    {
+       
+        try {
+            $user = $this->auth->user();
+
+            
+            $post = $this->postRepository->findByIdAndUserId($id, $user->id);
+            if (!$post) {
+                Session::flash("Post non trouvé lors de la suppression", ["post_id" => $id, "user_id" => $user->id]);
+                return $this->redirect("/hote");
+            }
+
+           
+            if ($post->media_path) {
+                $this->fileUploadService->delete($post->media_path);
+            }
+
+           
+            $this->em->remove($post);
+            $this->em->flush();
+
+            Session::flash("Post supprimé avec succès", ["post_id" => $id, "user_id" => $user->id]);
+            return $this->redirect("/hote/index");
+        } catch (Exception $e) {
+            Session::flash($e, ["post_id" => $id, "action" => "remove_post"]);
+            return $this->redirect("/hote/index");
         }
     }
 }

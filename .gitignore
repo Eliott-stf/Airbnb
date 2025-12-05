@@ -6,10 +6,10 @@
 /.vscode
 *.log
 .DS_Store
-*.sql
+
 *.dump
 *.bak
-db/*.sql
+
 db/*.dump
 .docker/
 

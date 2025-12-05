@@ -1,14 +1,5 @@
 <?php
 
-/**
- * ============================================
- * ENTITÉ POST
- * ============================================
- * 
- * Entité post pour créer un post complet 
- * Utilise les attributs Doctrine pour le mapping ORM
- */
-
 declare(strict_types=1);
 
 namespace App\Entity;
@@ -51,6 +42,12 @@ class Post
     #[Column(type: "datetime", nullable: true)]
     public ?DateTime $created_at = null;
 
+    #[Column(type: "datetime", nullable: true)]
+    public ?DateTime $updated_at = null;
+
+    #[Column(type: "string", length: 255, nullable: true)]
+    public ?string $media_path = null;
+
     #[Column(type: "integer")]
     public int $bed_count;
 
@@ -64,7 +61,7 @@ class Post
     public int $type_id;
 
     #[ManyToOne(targetEntity: User::class, inversedBy: 'post')]
-    public ?User $user =  null;
+    public ?User $user = null;
 
     #[ManyToOne(targetEntity: Type::class, inversedBy: 'post')]
     public ?Type $type = null;

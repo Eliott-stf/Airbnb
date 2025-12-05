@@ -23,8 +23,8 @@ use JulienLinard\Doctrine\Mapping\ManyToOne;
 class Booking
 {
     #[Id]
-    #[Column(type:"integer", autoIncrement:true)]
-    public int $id;
+    #[Column(type:"integer", autoIncrement:true, nullable:true)]
+    public ?int $id= null;
 
      #[Column(type:"datetime")]
     public DateTime $date_in;
@@ -33,13 +33,13 @@ class Booking
     public DateTime $date_out;
 
     #[Column(type:"integer", default: 1)]
-    public int $guest_count;
+    public int $guest_count = 1;
 
-    #[Column(type:"integer", nullable:true)]
-    public int $post_id= null;
+    #[Column(type:"integer")]
+    public int $post_id;
 
-    #[Column(type:"integer", nullable:true)]
-    public int $user_id = null; 
+    #[Column(type:"integer")]
+    public int $user_id; 
 
     #[ManyToOne(targetEntity:User::class, inversedBy:'booking')]
     public ?User $user = null;
