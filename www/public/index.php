@@ -10,6 +10,7 @@ use App\Controller\HomeController;
 use App\Controller\HoteController;
 use JulienLinard\Auth\AuthManager;
 use JulienLinard\Core\Application;
+use App\Controller\BookingController;
 use JulienLinard\Doctrine\EntityManager;
 use JulienLinard\Core\Middleware\CsrfMiddleware;
 
@@ -97,6 +98,7 @@ $router->addMiddleware(new CsrfMiddleware());
 $router->registerRoutes(HomeController::class);
 $router->registerRoutes(AuthController::class);
 $router->registerRoutes(HoteController::class);
+$router->registerRoutes(BookingController::class);
 
 
 
