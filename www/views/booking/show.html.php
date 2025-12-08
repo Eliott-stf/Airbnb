@@ -9,7 +9,7 @@
                 $post = $booking->post;
             ?>
                 <div class="bg-white rounded-xl shadow overflow-hidden group">
-
+                <a href="/post/<?= htmlspecialchars($post->id) ?>" class="destination-card block group cursor-pointer">
                     <div class="relative w-full h-48 overflow-hidden">
                         <?php if (!empty($post->media_path)): ?>
                             <img
@@ -49,7 +49,7 @@
                             </span>
                         </div>
 
-                        <!-- Bouton Supprimer réservation -->
+                    
                         <form method="POST" action="/booking/<?= $booking->id ?>/delete" 
                               class="mt-4"
                               onsubmit="return confirm('Voulez-vous vraiment supprimer cette réservation ?');">
@@ -66,7 +66,7 @@
                         </form>
 
                     </div>
-
+                </a>
                 </div>
             <?php endforeach; ?>
 

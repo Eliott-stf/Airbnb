@@ -57,10 +57,14 @@ class HomeController extends Controller
         $availableRepo = $this->em->createRepository(AvailableRepository::class, Available::class);
         $available = $availableRepo->findOneBy(['post_id' => $post->id]);
 
+        $bookingRepo = $this->em->createRepository(BookingRepository::class, Booking::class);
+        $booking = $bookingRepo->find($id);
+
 
         return $this->view("home/show", [
             "post"  => $post,
             "user"  => $this->auth->user(),
+            "booking" => $booking,
             "available" => $available
         ]);
     }
