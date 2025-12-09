@@ -57,6 +57,8 @@ public function findByIdAndUserId(int $id, int $userId): ?Post
     }
 
     return $post;
+
 }
+
 
 }

@@ -28,5 +28,10 @@ class EquipmentPost
     #[Id]
     #[Column(type:"integer")]
     public int $equipment_id;
-    
+
+    #[ManyToOne(targetEntity: Post::class, inversedBy: 'equipmentPosts')]
+    public ?Post $post = null; 
+
+    #[ManyToOne(targetEntity: Equipment::class, inversedBy: 'equipmentsPost')]
+    public ?Equipment $equipment = null; 
 }

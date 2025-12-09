@@ -5,15 +5,11 @@ namespace App\Controller;
 use Exception;
 use App\Entity\Post;
 use App\Entity\Booking;
-use App\Entity\Available;
-use JulienLinard\Router\Request;
 use JulienLinard\Router\Response;
 use App\Repository\PostRepository;
 use JulienLinard\Auth\AuthManager;
 use App\Repository\BookingRepository;
 use JulienLinard\Core\Session\Session;
-use JulienLinard\Core\View\ViewHelper;
-use App\Repository\AvailableRepository;
 use JulienLinard\Doctrine\EntityManager;
 use JulienLinard\Router\Attributes\Route;
 use JulienLinard\Core\Controller\Controller;
@@ -36,8 +32,9 @@ class BookingController extends Controller
     #[Route("/booking/show", name: "app_booking_show", methods: ["GET"], middleware: [AuthMiddleware::class])]
     public function booking(): Response
     {
-        $bookingRepo = $this->em->createRepository(BookingRepository::class, Booking::class);
-        $bookings = $bookingRepo->findAll();
+        
+        $bookings =$this->bookingRepository->findBy(['user_id' => $this->auth->id()]);
+        $post = $this->postRepository->findBy(['user_id' => $this->auth->id()]);
 
         
         foreach ($bookings as $booking) {
@@ -48,7 +45,8 @@ class BookingController extends Controller
 
         return $this->view("booking/show", [
             "user" => $user,
-            "bookings" => $bookings
+            "bookings" => $bookings,
+            "posts" => $post
         ]);
     }
 

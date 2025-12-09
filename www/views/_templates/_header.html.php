@@ -64,7 +64,8 @@
 
     
     <?= \JulienLinard\Core\Middleware\CsrfMiddleware::field() ?>
-
+    
+<?php if (!empty($headerHidden)) return; ?>
 <header class="bg-[#fbfbfb] p-4 flex justify-between items-center shadow-xl">
 
     <div class="w-24 h-34">
@@ -73,15 +74,15 @@
         </a>
     </div>
 
-    <div class="bg-white px-3 py-1 rounded-[35px] space-x-5 shadow-[0_0_10px_-2px_rgba(0,0,0,0.75)] flex items-center justify-center">
-        <p>NAVIGATION</p>
-        <button class="bg-[#ff5a5f] mx-2 w-10 h-10 rounded-full flex items-center justify-center">
-            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-                <path fill="white"
-                      d="M9.5 16q-2.725 0-4.612-1.888T3 9.5t1.888-4.612T9.5 3t4.613 1.888T16 9.5q0 1.1-.35 2.075T14.7 13.3l5.6 5.6q.275.275.275.7t-.275.7t-.7.275t-.7-.275l-5.6-5.6q-.75.6-1.725.95T9.5 16m0-2q1.875 0 3.188-1.312T14 9.5t-1.312-3.187T9.5 5T6.313 6.313T5 9.5t1.313 3.188T9.5 14" />
-            </svg>
-        </button>
-    </div>
+        <div class="hidden md:flex items-center bg-gray-100 rounded-full shadow-sm px-4 py-2 space-x-4">
+            <input type="text" placeholder="Où allez-vous ?" class="bg-transparent outline-none text-gray-700 text-sm">
+            <input type="date" class="bg-transparent outline-none text-gray-700 text-sm">
+            <button class="px-4 py-2 bg-[#ff5a5f] text-white rounded-full hover:bg-red-800 transition">
+                Rechercher
+            </button>
+        </div>
+
+    
 
     <?php if (empty($posts)): ?>
         <div class="flex items-center space-x-4">
@@ -110,7 +111,7 @@
             <button type="submit" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Déconnexion</button>
         </form>
     <?php else: ?>
-        <a href="/auth/login" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Connexion</a>
+        <a href="/login" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Connexion</a>
     <?php endif; ?>
 
     <div class="bg-[#f2f2f2] w-10 h-10 border-rad-50 rounded-full flex items-center justify-center">

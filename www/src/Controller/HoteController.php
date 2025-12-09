@@ -9,6 +9,7 @@ use App\Entity\Type;
 use App\Entity\Category;
 use App\Entity\Available;
 use App\Entity\Equipment;
+use App\Entity\EquipmentPost;
 use JulienLinard\Router\Request;
 use JulienLinard\Router\Response;
 use App\Repository\PostRepository;
@@ -109,7 +110,6 @@ class HoteController extends Controller
         $categories = $this->categoryRepository->findAll();
 
         return $this->view("hote/create", [
-            "csrf_token" => ViewHelper::csrfToken(),
             "user" => $this->auth->user(),
             "types" => $types,
             'equipments' => $equipments,
@@ -146,7 +146,10 @@ class HoteController extends Controller
         $bedCount = trim($request->getPost('bed_count', '0') ?? '0');
         $maxCapacity = trim($request->getPost('max_capacity', '0') ?? '0');
         $typeId = trim($request->getPost('type_id', '0') ?? '0');
-        $equipmentIds = $request->getPost('equipment_ids', []);
+
+        // Récupération des IDs d'équipement sélectionnés
+        $selectedEquipments = $request->getPost('equipment', []);
+
         $dateIn = $request->getPost('date_in', '0') ?? '0';
         $dateOut = $request->getPost('date_out', '0') ?? '0';
 
@@ -156,17 +159,6 @@ class HoteController extends Controller
 
         //On effectue les validations 
         $validator = new Validator();
-
-        //Titre requis & min/max 
-        //Description requis & min/max
-        //PriceDay requis & numéric & max 1000
-        //Country requis & string 
-        //addresse requis & max 
-        //PostalCode requis & is_numeric max 5
-        //City requis & string & max
-        //BedCount requis & is_numeric & max 10
-        //MaxCapacity requis & is_numeric & max 10
-
 
         $result = $validator->validate($_POST, [
             'title'     => 'required|min:3|max:255',
@@ -186,11 +178,11 @@ class HoteController extends Controller
             Session::flash('error', 'Veuillez corriger les erreurs du formulaire');
 
             return $this->view('hote/create', [
-                "csrf_token" => ViewHelper::csrfToken(),
                 "user"       => $user,
                 "types"      => $types,
                 "equipments" => $equipments,
                 "categorys"  => $categories,
+                "selectedEquipmentIds" => $selectedEquipments,
                 "errors"     => $result->getErrors(),
                 'old' => [
                     'title' => $title ?? '',
@@ -203,10 +195,11 @@ class HoteController extends Controller
                     'date_in' => $dateIn,
                     'date_out' => $dateOut,
                     'bed_count' => $bedCount,
-                    'max_capacity' => $maxCapacity
+                    'max_capacity' => $maxCapacity,
                 ]
             ]);
         }
+
 
         $mediaPath = null;
 
@@ -221,7 +214,7 @@ class HoteController extends Controller
                 $data = $result->getData(); // array ou null
 
                 if ($data !== null && isset($data['path'])) {
-                    $mediaPath = $data['path'];   // <-- ICI : string OK
+                    $mediaPath = $data['path'];
                 }
             }
         }
@@ -233,7 +226,7 @@ class HoteController extends Controller
             $post->title = $title;
             $post->description = $description;
             $post->user_id = $user->getAuthIdentifier();
-            $post->type_id = $typeId;
+            $post->type_id = (int)$typeId; // Assurez-vous que l'ID est un entier
             $post->price_day = $priceDay;
             $post->country = $country;
             $post->address = $address;
@@ -244,9 +237,34 @@ class HoteController extends Controller
             $post->media_path = $mediaPath;
             $post->created_at = new \DateTime();
 
-            
+
             $this->em->persist($post);
             $this->em->flush();
+
+            // --- GESTION DE LA RELATION MANY-TO-MANY EQUIPMENT_POST ---
+            if (is_array($selectedEquipments)) {
+
+                $conn = $this->em->getConnection();
+
+                // Suppression préventive (optionnelle lors de la création, mais utile)
+                $conn->execute(
+                    "DELETE FROM equipment_post WHERE post_id = :post_id",
+                    ['post_id' => $post->id]
+                );
+
+                // Insertion des nouveaux liens
+                if (!empty($selectedEquipments)) {
+                    $sqlInsert = "INSERT INTO equipment_post (post_id, equipment_id) VALUES (:post_id, :equip_id)";
+
+                    foreach ($selectedEquipments as $equipId) {
+                        $conn->execute($sqlInsert, [
+                            'post_id'  => $post->id,
+                            'equip_id' => (int)$equipId
+                        ]);
+                    }
+                }
+            }
+
 
 
             $available = new Available();
@@ -257,21 +275,19 @@ class HoteController extends Controller
             $this->em->flush();
 
 
-
             Session::flash("Post créer avec succes", ["user_id" => $user->id, "title_post" => $title]);
-            //redirection 
             return $this->redirect("/hote/index");
         } catch (\Exception $e) {
-            Session::flash('error', 'Une erreur est survenue lors de la création du todo: ' . $e->getMessage());
-
+            // Remplacez $result->getErrors() par [] si $result n'est pas défini en cas d'erreur de base de données
+            Session::flash('error', 'Une erreur est survenue lors de la création du bien : ' . $e->getMessage());
 
             return $this->view('hote/create', [
-                "csrf_token" => ViewHelper::csrfToken(),
                 "user"       => $user,
                 "types"      => $types,
                 "equipments" => $equipments,
                 "categorys"  => $categories,
-                "errors"     => $result->getErrors(),
+                "selectedEquipmentIds" => $selectedEquipments,
+                "errors"     => isset($result) ? $result->getErrors() : [],
                 'old' => [
                     'title' => $title ?? '',
                     'description' => $description ?? '',
@@ -309,20 +325,24 @@ class HoteController extends Controller
                 return $this->redirect("/hote/index");
             }
 
+            $equipmentsPost = $this->equipmentRepository->findByPostId($id);
+            $selectedEquipmentIds = array_map(fn($e) => $e->id, $equipmentsPost);
+            $postList = $this->postRepository->findBy(['user_id' => $this->auth->id()]);
             $types = $this->typeRepository->findAll();
             $equipments = $this->equipmentRepository->findAll();
             $categories = $this->categoryRepository->findAll();
-            $available = $this->availableRepository->findByIdAndUserId($id, $user->id);
+            $available = $this->availableRepository->findOneBy(['post_id' => $post->id]);
 
 
             return $this->view("hote/edit", [
-                "csrf_token" => ViewHelper::csrfToken(),
-                "user" => $this->auth->user(),
+                "user" => $user,
                 "types" => $types,
                 'equipments' => $equipments,
                 'categorys' => $categories,
                 "available" => $available,
-                "post" => $post
+                "post" => $post,
+                "posts" => $postList,
+                "selectedEquipmentIds" => $selectedEquipmentIds
             ]);
         } catch (Exception $e) {
             Session::flash($e, ["post_id" => $id, "action" => "edit_post"]);
@@ -333,7 +353,7 @@ class HoteController extends Controller
 
     /**
      * méthode pour enregistrer les modifications au post 
-     * @param int $id id du todo 
+     * @param int $id id du post 
      * @param Request $request
      * @return Response
      */
@@ -366,7 +386,10 @@ class HoteController extends Controller
         $bedCount = trim($request->getPost('bed_count', '0') ?? '0');
         $maxCapacity = trim($request->getPost('max_capacity', '0') ?? '0');
         $typeId = trim($request->getPost('type_id', '0') ?? '0');
-        $equipmentIds = $request->getPost('equipment_ids', []);
+
+        // Récupération des IDs d'équipement sélectionnés
+        $selectedEquipments = $request->getPost('equipment', []);
+
         $dateIn = $request->getPost('date_in', '0') ?? '0';
         $dateOut = $request->getPost('date_out', '0') ?? '0';
         $removeMedia  = $request->getPost('remove_media', '0') === "1";
@@ -390,12 +413,20 @@ class HoteController extends Controller
 
         if ($result->hasErrors()) {
             Session::flash('error', 'Veuillez corriger les erreurs du formulaire');
+
+            // Récupérer les données disponibles existantes
+            $equipmentsPost = $this->equipmentRepository->findByPostId($id);
+            $selectedEquipmentIds = array_map(fn($e) => $e->id, $equipmentsPost);
+            $available = $this->availableRepository->findOneBy(['post_id' => $post->id]);
+
             return $this->view('hote/edit', [
-                "csrf_token" => ViewHelper::csrfToken(),
                 "user"       => $user,
+                "post"       => $post,
                 "types"      => $types,
                 "equipments" => $equipments,
                 "categorys"  => $categories,
+                "available"  => $available,
+                "selectedEquipmentIds" => $selectedEquipmentIds,
                 "errors"     => $result->getErrors(),
                 'old' => [
                     'title' => $title,
@@ -408,7 +439,8 @@ class HoteController extends Controller
                     'date_in' => $dateIn,
                     'date_out' => $dateOut,
                     'bed_count' => $bedCount,
-                    'max_capacity' => $maxCapacity
+                    'max_capacity' => $maxCapacity,
+                    'selected_equipment_ids' => $selectedEquipments
                 ]
             ]);
         }
@@ -422,6 +454,7 @@ class HoteController extends Controller
         }
 
         if (isset($_FILES['media']) && $_FILES['media']['error'] === UPLOAD_ERR_OK) {
+            // ... (logique d'upload)
             $uploadResult = $this->fileUploadService->upload($_FILES['media']);
             if ($uploadResult instanceof \App\Service\UploadResult && $uploadResult->isSuccess()) {
                 $data = $uploadResult->getData();
@@ -432,10 +465,10 @@ class HoteController extends Controller
         }
 
         try {
-            // Mise à jour du post
+            // mise à jour des propriétés du post
             $post->title = $title;
             $post->description = $description;
-            $post->type_id = $typeId;
+            $post->type_id = (int)$typeId;
             $post->price_day = $priceDay;
             $post->country = $country;
             $post->address = $address;
@@ -448,8 +481,32 @@ class HoteController extends Controller
             $this->em->persist($post);
             $this->em->flush();
 
-            // Mise à jour des disponibilités
-            $available = $this->availableRepository->findByIdAndUserId($id, $user->id);
+
+            if (is_array($selectedEquipments)) {
+
+                $conn = $this->em->getConnection();
+
+                //on supp
+                $conn->execute(
+                    "DELETE FROM equipment_post WHERE post_id = :post_id",
+                    ['post_id' => $post->id]
+                );
+
+                //on remet les nouveaux 
+                if (!empty($selectedEquipments)) {
+                    $sqlInsert = "INSERT INTO equipment_post (post_id, equipment_id) VALUES (:post_id, :equip_id)";
+
+                    foreach ($selectedEquipments as $equipId) {
+                        $conn->execute($sqlInsert, [
+                            'post_id'  => $post->id,
+                            'equip_id' => (int)$equipId
+                        ]);
+                    }
+                }
+            }
+
+
+            $available = $this->availableRepository->findOneBy(['post_id' => $post->id]);
             if (!$available) {
                 $available = new Available();
                 $available->post_id = $post->id;
@@ -465,13 +522,14 @@ class HoteController extends Controller
             return $this->redirect("/hote/index");
         } catch (\Exception $e) {
             Session::flash('error', 'Une erreur est survenue lors de la modification du post: ' . $e->getMessage());
+
             return $this->view('hote/edit', [
-                "csrf_token" => ViewHelper::csrfToken(),
                 "user"       => $user,
+                "post"       => $post,
                 "types"      => $types,
                 "equipments" => $equipments,
                 "categorys"  => $categories,
-                "errors"     => $result->getErrors(),
+                "errors"     => isset($result) ? $result->getErrors() : [],
                 'old' => [
                     'title' => $title,
                     'description' => $description,
@@ -483,12 +541,12 @@ class HoteController extends Controller
                     'date_in' => $dateIn,
                     'date_out' => $dateOut,
                     'bed_count' => $bedCount,
-                    'max_capacity' => $maxCapacity
+                    'max_capacity' => $maxCapacity,
+                    'selected_equipment_ids' => $selectedEquipments
                 ]
             ]);
         }
     }
-
 
 
     /**

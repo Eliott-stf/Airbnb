@@ -31,8 +31,11 @@ class Equipment
     public string $label; 
 
     #[Column(type: "integer", nullable: true)]
-    public ?int $category_id = null;
+    public ?int $category_id = null; 
 
-    #[ManyToOne(targetEntity: Category::class, inversedBy: 'equipments')]
-    public ?Category $category = null; 
+    #[ManyToOne(targetEntity: Category::class, inversedBy: 'equipment')]
+    public ?Category $category = null;  
+
+    #[ManyToMany(targetEntity: Post::class, joinTable: "equipment_post")]
+    public array $posts = []; 
 }

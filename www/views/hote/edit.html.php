@@ -2,6 +2,21 @@
 // Initialiser les variables si elles n'existent pas
 $errors = $errors ?? [];
 $old = $old ?? ['title' => '', 'description' => ''];
+
+
+// Transformer le tableau d'objets FormError en tableau associatif par champ
+$errorsByField = [];
+if (!empty($errors)) {
+    foreach ($errors as $error) {
+        if (is_object($error) && method_exists($error, 'getField') && method_exists($error, 'getMessage')) {
+            $field = $error->getField();
+            if (!isset($errorsByField[$field])) {
+                $errorsByField[$field] = [];
+            }
+            $errorsByField[$field][] = $error->getMessage();
+        }
+    }
+}
 ?>
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8 ">
@@ -26,23 +41,24 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     id="title"
                     name="title"
                     value="<?= htmlspecialchars($post->title) ?>"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= isset($errors['title']) ? 'border-red-500' : '' ?>"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['title']) ? 'border-red-500' : '' ?>"
                     required
                     maxlength="255">
-                <?php if (isset($error)): ?>
-                    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg flex">
-                        <p class="text-sm text-red-700"><?= $error ?></p>
-                    </div>
-                <?php endif ?>
+                <?php if (!empty($errorsByField['title'])): ?>
+                    <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['title'])) ?></p>
+                <?php endif; ?>
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2" for="type_id">Type de logement</label>
                 <select name="type_id" id="type_id" class=" w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option value="<?= htmlspecialchars($post->type_id) ?>"> Choisissez un type</option>
 
+                    <option value="">Choisissez un type</option>
+
+                    <?php $currentTypeId = $old['type_id'] ?? $post->type_id; ?>
                     <?php foreach ($types as $type): ?>
-                        <option value="<?= $type->id ?>">
+                        <?php $selectedAttribute = ($type->id == $currentTypeId) ? 'selected' : ''; ?>
+                        <option value="<?= $type->id ?>" <?= $selectedAttribute ?>>
                             <?= htmlspecialchars($type->label) ?>
                         </option>
                     <?php endforeach; ?>
@@ -65,50 +81,53 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     id="description"
                     name="description"
                     rows="4"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"><?= htmlspecialchars($post->description) ?></textarea>
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['description']) ? 'border-red-500' : '' ?>"><?= htmlspecialchars($post->description) ?></textarea>
+                <?php if (!empty($errorsByField['description'])): ?>
+                    <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['description'])) ?></p>
+                <?php endif; ?>
             </div>
-             <div>
-                         <label for="media" class="block text-sm font-semibold text-gray-700 mb-2">
-                        Fichier joint
-                        </label>
-                        <?php if($post->media_path):?>
-                            <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center space-x-4 ">
-                                        <img class="h-20 w-20 object-cover rounded-lg border-2 border-gray-300" src="<?= htmlspecialchars($post->media_path) ?>" alt="Image actuelle">
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-700">Image actuelle</p>
-                                            <p class="text-xs text-gray-500">Cliquez sur l'image pour l'agrandir</p>
-                                        </div>
-                                    </div>
-                                    <label class="flex items-center cursor-pointer">
-                                        <input class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500" type="checkbox" name="remove_media" value="1">
-                                        <span class="ml-2 text-sm text-red-600 font-medium">Supprimer</span>
-                                    </label>
+            <div>
+                <label for="media" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Fichier joint
+                </label>
+                <?php if ($post->media_path): ?>
+                    <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4 ">
+                                <img class="h-20 w-20 object-cover rounded-lg border-2 border-gray-300" src="<?= htmlspecialchars($post->media_path) ?>" alt="Image actuelle">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-700">Image actuelle</p>
+                                    <p class="text-xs text-gray-500">Cliquez sur l'image pour l'agrandir</p>
                                 </div>
                             </div>
-
-
-                        <?php endif?>
-
-
-
-                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-indigo-400 transition-colors">
-                        <div class="space-y-1 text-center">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                            </svg>
-                            <div class="flex text-sm text-gray-600">
-                                <label for="media" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                                    <span> <?= $post->media_path ? 'Remplacer l\'image': 'Choisir une image' ?></span>
-                                    <input id="media" name="media" type="file" class="sr-only" accept="image/jpeg,image/jpg,image/png,image/avif,image/webp">
-                                </label>
-                                <p class="pl-1">ou glisser-déposer</p>
-                            </div>
-                            <p class="text-xs text-gray-500">JPEG, JPG, PNG, AVIF, WEBP jusqu'à 10MB</p>
+                            <label class="flex items-center cursor-pointer">
+                                <input class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500" type="checkbox" name="remove_media" value="1">
+                                <span class="ml-2 text-sm text-red-600 font-medium">Supprimer</span>
+                            </label>
                         </div>
+                    </div>
+
+
+                <?php endif ?>
+
+
+
+                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-indigo-400 transition-colors">
+                    <div class="space-y-1 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                        <div class="flex text-sm text-gray-600">
+                            <label for="media" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                                <span> <?= $post->media_path ? 'Remplacer l\'image' : 'Choisir une image' ?></span>
+                                <input id="media" name="media" type="file" class="sr-only" accept="image/jpeg,image/jpg,image/png,image/avif,image/webp">
+                            </label>
+                            <p class="pl-1">ou glisser-déposer</p>
                         </div>
+                        <p class="text-xs text-gray-500">JPEG, JPG, PNG, AVIF, WEBP jusqu'à 10MB</p>
+                    </div>
                 </div>
+            </div>
 
 
             <div class="pt-4 ">
@@ -131,11 +150,13 @@ $old = $old ?? ['title' => '', 'description' => ''];
                             <div class="flex flex-wrap gap-2">
                                 <?php foreach ($equipments as $equipment): ?>
                                     <?php if ($equipment->category_id == $category->id): ?>
+                                        <?php $checked = in_array($equipment->id, $selectedEquipmentIds ?? []) ? 'checked' : ''; ?>
                                         <label class="cursor-pointer select-none">
                                             <input
                                                 type="checkbox"
-                                                name="equipment_ids[]"
+                                                name="equipment[]"
                                                 value="<?= $equipment->id ?>"
+                                                <?= $checked ?>
                                                 class="peer hidden">
                                             <span class="
                                     px-3 py-1 rounded-full border border-gray-300 
@@ -171,7 +192,10 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     id="address"
                     name="address"
                     value="<?= htmlspecialchars($post->address) ?>"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['address']) ? 'border-red-500' : '' ?>">
+                <?php if (!empty($errorsByField['address'])): ?>
+                    <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['address'])) ?></p>
+                <?php endif; ?>
             </div>
 
 
@@ -183,8 +207,11 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     <input
                         id="city"
                         name="city"
-                       value="<?= htmlspecialchars($post->city) ?>"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        value="<?= htmlspecialchars($post->city) ?>"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['city']) ? 'border-red-500' : '' ?>">
+                    <?php if (!empty($errorsByField['city'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['city'])) ?></p>
+                    <?php endif; ?>
                 </div>
 
                 <div>
@@ -195,7 +222,10 @@ $old = $old ?? ['title' => '', 'description' => ''];
                         id="postal_code"
                         name="postal_code"
                         value="<?= htmlspecialchars($post->postal_code) ?>"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['postal_code']) ? 'border-red-500' : '' ?>">
+                    <?php if (!empty($errorsByField['postal_code'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['postal_code'])) ?></p>
+                    <?php endif; ?>
 
                 </div>
 
@@ -207,7 +237,10 @@ $old = $old ?? ['title' => '', 'description' => ''];
                         id="country"
                         name="country"
                         value="<?= htmlspecialchars($post->country) ?>"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['country']) ? 'border-red-500' : '' ?>">
+                    <?php if (!empty($errorsByField['country'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['country'])) ?></p>
+                    <?php endif; ?>
                 </div>
 
             </div>
@@ -215,12 +248,12 @@ $old = $old ?? ['title' => '', 'description' => ''];
             <div class="flex gap-5">
                 <div class="flex-1">
                     <label for="date_in" class="block text-sm font-medium text-gray-700 mb-1">Debut de location</label>
-                    <input type="date"  value="<?= $available ? htmlspecialchars($available->date_in->format('Y-m-d')) : '' ?>"  id="date_in" name="date_in" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <input type="date" value="<?= $available ? htmlspecialchars($available->date_in->format('Y-m-d')) : '' ?>" id="date_in" name="date_in" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
 
                 <div class="flex-1">
                     <label for="date_out" class="block text-sm font-medium text-gray-700 mb-1">Fin de location</label>
-                    <input type="date" value="<?= $available ? htmlspecialchars($available->date_out->format('Y-m-d')) : '' ?>"  id="date_out" name="date_out" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <input type="date" value="<?= $available ? htmlspecialchars($available->date_out->format('Y-m-d')) : '' ?>" id="date_out" name="date_out" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
             </div>
 
@@ -235,8 +268,11 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     <input
                         id="price_day"
                         name="price_day"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['price_day']) ? 'border-red-500' : '' ?>"
                         value="<?= htmlspecialchars($post->price_day) ?>">
+                    <?php if (!empty($errorsByField['price_day'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['price_day'])) ?></p>
+                    <?php endif; ?>
                 </div>
 
                 <div class="flex-1">
@@ -244,11 +280,14 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     <input
                         type="number"
                         name="max_capacity"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['max_capacity']) ? 'border-red-500' : '' ?>"
                         min="1"
                         max="10"
                         value="<?= htmlspecialchars($post->max_capacity) ?>"
                         required>
+                    <?php if (!empty($errorsByField['max_capacity'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['max_capacity'])) ?></p>
+                    <?php endif; ?>
                 </div>
 
                 <div class="flex-1">
@@ -256,11 +295,14 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     <input
                         type="number"
                         name="bed_count"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['bed_count']) ? 'border-red-500' : '' ?>"
                         min="1"
                         max="10"
                         value="<?= htmlspecialchars($post->bed_count) ?>"
                         required>
+                    <?php if (!empty($errorsByField['bed_count'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['bed_count'])) ?></p>
+                    <?php endif; ?>
                 </div>
 
             </div>

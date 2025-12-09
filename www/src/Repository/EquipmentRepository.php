@@ -19,27 +19,45 @@ use JulienLinard\Doctrine\Repository\EntityRepository;
 
 class EquipmentRepository extends EntityRepository
 {
+    private EntityManager $em;
+
     public function __construct(EntityManager $em, string $entityClass = Equipment::class)
     {
-         parent::__construct(
+        $this->em = $em; // Stocker l'Entity Manager
+
+        parent::__construct(
             $em->getConnection(),
             $em->getMetadataReader(),
             $entityClass
         );
     }
 
-   public function findAllByCategory(): array
-{
-    
-    $equipments = $this->findBy([], ['category_id' => 'ASC', 'label' => 'ASC']);
+    public function findAllByCategory(): array
+    {
 
-    $grouped = [];
+        $equipments = $this->findBy([], ['category_id' => 'ASC', 'label' => 'ASC']);
 
-    foreach ($equipments as $equipment) {
-        $grouped[$equipment->category_id][] = $equipment;
+        $grouped = [];
+
+        foreach ($equipments as $equipment) {
+            $grouped[$equipment->category_id][] = $equipment;
+        }
+
+        return $grouped;
     }
 
-    return $grouped;
-}
+
+    public function findByPostId(int $postId): array
+    {
+        $sql = "SELECT e.*
+                FROM equipment e
+                JOIN equipment_post pe ON e.id = pe.equipment_id
+                WHERE pe.post_id = ?";
+
+        
+        $rows = $this->connection->fetchAll($sql, [$postId]);
+        return array_map([$this, 'hydrate'], $rows);
+    }
+
     
 }

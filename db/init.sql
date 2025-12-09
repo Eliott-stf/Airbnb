@@ -158,7 +158,7 @@ CREATE TABLE booking (
     FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE post_equipment (
+CREATE TABLE equipment_post (
     post_id INT NOT NULL,
     equipment_id INT NOT NULL,
     PRIMARY KEY (post_id, equipment_id),

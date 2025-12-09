@@ -44,7 +44,8 @@ class AuthController extends Controller
     public function loginForm(): Response
     {
         return $this->view('auth/login', [
-            'title' => 'Connexion'
+            'title' => 'Connexion',
+            "headerHidden" => true
         ]);
     }
 
@@ -109,7 +110,8 @@ class AuthController extends Controller
     public function registerForm(): Response
     {
         return $this->view('auth/register', [
-            'title' => 'Inscription'
+            'title' => 'Inscription',
+            "headerHidden" => true
         ]);
     }
 

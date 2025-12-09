@@ -40,13 +40,13 @@ class Post
     public string $city;
 
     #[Column(type: "datetime", nullable: true)]
-    public ?DateTime $created_at = null;
+    public ?DateTime $created_at = null; 
 
     #[Column(type: "datetime", nullable: true)]
-    public ?DateTime $updated_at = null;
+    public ?DateTime $updated_at = null; 
 
     #[Column(type: "string", length: 255, nullable: true)]
-    public ?string $media_path = null;
+    public ?string $media_path = null; 
 
     #[Column(type: "integer")]
     public int $bed_count;
@@ -55,17 +55,17 @@ class Post
     public int $max_capacity;
 
     #[Column(type: "integer")]
-    public int $user_id;
+    public int $user_id; 
 
     #[Column(type: "integer")]
     public int $type_id;
 
-    #[ManyToOne(targetEntity: User::class, inversedBy: 'post')]
+    #[ManyToOne(targetEntity: User::class, inversedBy: 'posts')] 
     public ?User $user = null;
 
-    #[ManyToOne(targetEntity: Type::class, inversedBy: 'post')]
+    #[ManyToOne(targetEntity: Type::class, inversedBy: 'posts')]
     public ?Type $type = null;
 
-    #[ManyToMany(targetEntity: Equipment::class, joinTable: "post_equipment")]
-    public array $equipments = [];
+    #[ManyToMany(targetEntity: Equipment::class, joinTable: "equipment_post", mappedBy: "posts")]
+    public array $equipments = []; 
 }

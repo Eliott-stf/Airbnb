@@ -1,7 +1,18 @@
 <?php
-// Initialiser les variables si elles n'existent pas
-$errors = $errors ?? [];
+
 $old = $old ?? ['title' => '', 'description' => ''];
+$errorsByField = [];
+if (!empty($errors)) {
+    foreach ($errors as $error) {
+        if (is_object($error) && method_exists($error, 'getField') && method_exists($error, 'getMessage')) {
+            $field = $error->getField();
+            if (!isset($errorsByField[$field])) {
+                $errorsByField[$field] = [];
+            }
+            $errorsByField[$field][] = $error->getMessage();
+        }
+    }
+}
 ?>
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8 ">
@@ -26,14 +37,12 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     id="title"
                     name="title"
                     value="<?= htmlspecialchars($old['title'] ?? '') ?>"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= isset($errors['title']) ? 'border-red-500' : '' ?>"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['title']) ? 'border-red-500' : '' ?>"
                     required
                     maxlength="255">
-                <?php if (isset($error)): ?>
-                    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg flex">
-                        <p class="text-sm text-red-700"><?= $error ?></p>
-                    </div>
-                <?php endif ?>
+                <?php if (!empty($errorsByField['title'])): ?>
+                    <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['title'])) ?></p>
+                <?php endif; ?>
             </div>
 
             <div>
@@ -65,7 +74,10 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     id="description"
                     name="description"
                     rows="4"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"><?= htmlspecialchars($old['description'] ?? '') ?></textarea>
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['description']) ? 'border-red-500' : '' ?>"><?= htmlspecialchars($old['description'] ?? '') ?></textarea>
+                <?php if (!empty($errorsByField['description'])): ?>
+                    <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['description'])) ?></p>
+                <?php endif; ?>
             </div>
             <div>
                 <label for="media" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -109,11 +121,13 @@ $old = $old ?? ['title' => '', 'description' => ''];
                             <div class="flex flex-wrap gap-2">
                                 <?php foreach ($equipments as $equipment): ?>
                                     <?php if ($equipment->category_id == $category->id): ?>
+                                        <?php $checked = in_array($equipment->id, $selectedEquipmentIds ?? []) ? 'checked' : ''; ?>
                                         <label class="cursor-pointer select-none">
                                             <input
                                                 type="checkbox"
-                                                name="equipment_ids[]"
+                                                name="equipment[]"
                                                 value="<?= $equipment->id ?>"
+                                                <?= $checked ?>
                                                 class="peer hidden">
                                             <span class="
                                     px-3 py-1 rounded-full border border-gray-300 
@@ -149,7 +163,10 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     id="address"
                     name="address"
                     value="<?= htmlspecialchars($old['address'] ?? '') ?>"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['address']) ? 'border-red-500' : '' ?>">
+                <?php if (!empty($errorsByField['address'])): ?>
+                    <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['address'])) ?></p>
+                <?php endif; ?>
             </div>
 
 
@@ -162,7 +179,10 @@ $old = $old ?? ['title' => '', 'description' => ''];
                         id="city"
                         name="city"
                         value="<?= htmlspecialchars($old['city'] ?? '') ?>"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['city']) ? 'border-red-500' : '' ?>">
+                    <?php if (!empty($errorsByField['city'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['city'])) ?></p>
+                    <?php endif; ?>
                 </div>
 
                 <div>
@@ -172,8 +192,11 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     <input
                         id="postal_code"
                         name="postal_code"
-                        value=" <?= htmlspecialchars($old['postal_code'] ?? '') ?>"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        value="<?= htmlspecialchars($old['postal_code'] ?? '') ?>"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['postal_code']) ? 'border-red-500' : '' ?>">
+                    <?php if (!empty($errorsByField['postal_code'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['postal_code'])) ?></p>
+                    <?php endif; ?>
 
                 </div>
 
@@ -185,7 +208,10 @@ $old = $old ?? ['title' => '', 'description' => ''];
                         id="country"
                         name="country"
                         value="<?= htmlspecialchars($old['country'] ?? '') ?>"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['country']) ? 'border-red-500' : '' ?>">
+                    <?php if (!empty($errorsByField['country'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['country'])) ?></p>
+                    <?php endif; ?>
                 </div>
 
             </div>
@@ -213,8 +239,11 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     <input
                         id="price_day"
                         name="price_day"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['price_day']) ? 'border-red-500' : '' ?>"
                         value="<?= htmlspecialchars($old['price_day'] ?? '') ?>">
+                    <?php if (!empty($errorsByField['price_day'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['price_day'])) ?></p>
+                    <?php endif; ?>
                 </div>
 
                 <div class="flex-1">
@@ -222,11 +251,14 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     <input
                         type="number"
                         name="max_capacity"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['max_capacity']) ? 'border-red-500' : '' ?>"
                         min="1"
                         max="10"
-                        value="1"
+                        value="<?= htmlspecialchars($old['max_capacity'] ?? '1') ?>"
                         required>
+                    <?php if (!empty($errorsByField['max_capacity'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['max_capacity'])) ?></p>
+                    <?php endif; ?>
                 </div>
 
                 <div class="flex-1">
@@ -234,11 +266,14 @@ $old = $old ?? ['title' => '', 'description' => ''];
                     <input
                         type="number"
                         name="bed_count"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent <?= !empty($errorsByField['bed_count']) ? 'border-red-500' : '' ?>"
                         min="1"
                         max="10"
-                        value="1"
+                        value="<?= htmlspecialchars($old['bed_count'] ?? '1') ?>"
                         required>
+                    <?php if (!empty($errorsByField['bed_count'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?= htmlspecialchars(implode(', ', $errorsByField['bed_count'])) ?></p>
+                    <?php endif; ?>
                 </div>
 
             </div>
