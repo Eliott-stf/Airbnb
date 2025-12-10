@@ -28,7 +28,7 @@ class UserRepository extends EntityRepository
     {
         return $this->findOneBy(['email' => $email]);
     }
-    
+
     /**
      * Vérifie si un email existe déjà
      * 
@@ -39,17 +39,5 @@ class UserRepository extends EntityRepository
     {
         $user = $this->findByEmail($email);
         return $user !== null;
-    }
-    
-    /**
-     * Trouve tous les utilisateurs actifs
-     * 
-     * @return array Liste des utilisateurs actifs
-     */
-    public function findActiveUsers(): array
-    {
-        // Si vous ajoutez un champ is_active plus tard
-        // return $this->findBy(['is_active' => true]);
-        return $this->findAll();
     }
 }

@@ -32,21 +32,6 @@ class EquipmentRepository extends EntityRepository
         );
     }
 
-    public function findAllByCategory(): array
-    {
-
-        $equipments = $this->findBy([], ['category_id' => 'ASC', 'label' => 'ASC']);
-
-        $grouped = [];
-
-        foreach ($equipments as $equipment) {
-            $grouped[$equipment->category_id][] = $equipment;
-        }
-
-        return $grouped;
-    }
-
-
     public function findByPostId(int $postId): array
     {
         $sql = "SELECT e.*
@@ -54,10 +39,8 @@ class EquipmentRepository extends EntityRepository
                 JOIN equipment_post pe ON e.id = pe.equipment_id
                 WHERE pe.post_id = ?";
 
-        
+
         $rows = $this->connection->fetchAll($sql, [$postId]);
         return array_map([$this, 'hydrate'], $rows);
     }
-
-    
 }
