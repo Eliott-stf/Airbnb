@@ -32,8 +32,7 @@ class AuthController extends Controller
         private AuthManager $auth,
         private EntityManager $em,
         private Validator $validator
-    ) {
-    }
+    ) {}
 
     /**
      * Affiche le formulaire de connexion

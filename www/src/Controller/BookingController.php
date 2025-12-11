@@ -32,11 +32,11 @@ class BookingController extends Controller
     #[Route("/booking/show", name: "app_booking_show", methods: ["GET"], middleware: [AuthMiddleware::class])]
     public function booking(): Response
     {
-        
-        $bookings =$this->bookingRepository->findBy(['user_id' => $this->auth->id()]);
+
+        $bookings = $this->bookingRepository->findBy(['user_id' => $this->auth->id()]);
         $post = $this->postRepository->findBy(['user_id' => $this->auth->id()]);
 
-        
+
         foreach ($bookings as $booking) {
             $booking->post = $this->em->find(Post::class, $booking->post_id);
         }
@@ -52,27 +52,27 @@ class BookingController extends Controller
 
 
     #[Route(path: "/booking/{id}/delete", name: "app_delete_booking", methods: ["POST"], middleware: [AuthMiddleware::class])]
-public function deleteBooking(int $id): Response
-{
-    try {
-        $user = $this->auth->user();
+    public function deleteBooking(int $id): Response
+    {
+        try {
+            $user = $this->auth->user();
 
-        // vérifie que la réservation existe et appartient à l'utilisateur
-        $booking = $this->bookingRepository->findByIdAndUserId($id, $user->id);
-        if (!$booking) {
-            Session::flash("Réservation non trouvée ou accès refusé", ["booking_id" => $id, "user_id" => $user->id]);
-            return $this->redirect("/dashboard"); 
+            // vérifie que la réservation existe et appartient à l'utilisateur
+            $booking = $this->bookingRepository->findByIdAndUserId($id, $user->id);
+            if (!$booking) {
+                Session::flash("Réservation non trouvée ou accès refusé", ["booking_id" => $id, "user_id" => $user->id]);
+                return $this->redirect("/dashboard");
+            }
+
+            // supp la réservation de la BDD
+            $this->em->remove($booking);
+            $this->em->flush();
+
+            Session::flash("Réservation supprimée avec succès", ["booking_id" => $id, "user_id" => $user->id]);
+            return $this->redirect("/booking/show");
+        } catch (Exception $e) {
+            Session::flash("Erreur lors de la suppression de la réservation", ["booking_id" => $id, "action" => "remove_booking", "error" => $e->getMessage()]);
+            return $this->redirect("/booking/show");
         }
-
-        // supp la réservation de la BDD
-        $this->em->remove($booking);
-        $this->em->flush();
-
-        Session::flash("Réservation supprimée avec succès", ["booking_id" => $id, "user_id" => $user->id]);
-        return $this->redirect("/booking/show"); 
-    } catch (Exception $e) {
-        Session::flash("Erreur lors de la suppression de la réservation", ["booking_id" => $id, "action" => "remove_booking", "error" => $e->getMessage()]);
-        return $this->redirect("/booking/show"); 
-    }
     }
 }

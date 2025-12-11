@@ -27,7 +27,7 @@ class HomeController extends Controller
     private BookingRepository $bookingRepository;
     private TypeRepository $typeRepository;
     private EquipmentRepository $equipmentRepository;
-    private AvailableRepository $availableRepository; 
+    private AvailableRepository $availableRepository;
 
     public function __construct(
         private EntityManager $em,
@@ -37,7 +37,7 @@ class HomeController extends Controller
         $this->bookingRepository = $this->em->createRepository(BookingRepository::class, Booking::class);
         $this->typeRepository = $this->em->createRepository(TypeRepository::class, Type::class);
         $this->equipmentRepository = $this->em->createRepository(EquipmentRepository::class, Equipment::class);
-        $this->availableRepository = $this->em->createRepository(AvailableRepository::class, Available::class); 
+        $this->availableRepository = $this->em->createRepository(AvailableRepository::class, Available::class);
     }
 
     #[Route("/", name: "app_index")]
@@ -58,31 +58,31 @@ class HomeController extends Controller
 
 
 
-#[Route(path: "/post/{id}", name: "app_show", methods: ["GET"])]
-public function post(int $id): Response
-{
-    $post = $this->postRepository->find($id);
+    #[Route(path: "/post/{id}", name: "app_show", methods: ["GET"])]
+    public function post(int $id): Response
+    {
+        $post = $this->postRepository->find($id);
 
-    if (!$post) {
-        return $this->redirect('/'); 
+        if (!$post) {
+            return $this->redirect('/');
+        }
+
+        $equipments = $this->equipmentRepository->findByPostId($id);
+        $postList = $this->postRepository->findBy(['user_id' => $this->auth->id()]);
+        $available = $this->availableRepository->findOneBy(['post_id' => $post->id]);
+        $booking = $this->bookingRepository->find($id);
+        $type = $this->typeRepository->find($post->type_id);
+
+        return $this->view("home/show", [
+            "post" => $post,
+            "posts" => $postList,
+            "user" => $this->auth->user(),
+            "booking" => $booking,
+            "type" => $type,
+            "available" => $available,
+            "equipments" => $equipments
+        ]);
     }
-
-    $equipments = $this->equipmentRepository->findByPostId($id); 
-    $postList = $this->postRepository->findBy(['user_id' => $this->auth->id()]);
-    $available = $this->availableRepository->findOneBy(['post_id' => $post->id]);
-    $booking = $this->bookingRepository->find($id);
-    $type = $this->typeRepository->find($post->type_id);
-
-    return $this->view("home/show", [
-        "post" => $post,
-        "posts" => $postList,
-        "user" => $this->auth->user(),
-        "booking" => $booking,
-        "type" => $type,
-        "available" => $available,
-        "equipments" => $equipments 
-    ]);
-}
     /**
      * méthod pour récuperer les données du form de réservation 
      * @param Request $request
